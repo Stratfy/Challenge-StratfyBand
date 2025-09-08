@@ -84,49 +84,6 @@ ENTITY_TYPE=smartband
 
 ---
 
-## 🧪 Exemplo mínimo de envio (trecho C++/Arduino)
-```cpp
-#include <WiFi.h>
-#include <HTTPClient.h>
-// + libs do sensor (ex.: MPU6050/ADXL345)
-
-const char* WIFI_SSID = "SSID";
-const char* WIFI_PASS = "PASS";
-String ORION = "http://<ORION_HOST>:1026";
-String ENTITY = "urn:ngsi-ld:smartband:STRATFY:001";
-
-void setup() {
-  Serial.begin(115200);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  while (WiFi.status() != WL_CONNECTED) { delay(500); }
-
-  // init I2C + sensor...
-}
-
-void loop() {
-  // ler sensor -> ax, ay, az (ou calcular score)
-  float ax = -0.12, ay = 0.98, az = 9.71;
-  int score = 42; // TODO: definir regra de cálculo no edge
-
-  String url = ORION + "/v2/entities/" + ENTITY + "/attrs";
-  String payload = "{"accX":{"type":"Number","value":" + String(ax, 2) +
-                   "},"accY":{"type":"Number","value":" + String(ay, 2) +
-                   "},"accZ":{"type":"Number","value":" + String(az, 2) +
-                   "},"score":{"type":"Number","value":" + String(score) + "}}";
-
-  HTTPClient http;
-  http.begin(url);
-  http.addHeader("Content-Type", "application/json");
-  http.addHeader("Fiware-Service", "<seu_service>");
-  http.addHeader("Fiware-ServicePath", "/");
-  int code = http.POST(payload);
-  http.end();
-
-  delay(2000);
-}
-```
-
-> **Importante:** manter consistência de unidades (g vs m/s²) e faixa do sensor (±2g, ±4g…).
 
 ---
 
