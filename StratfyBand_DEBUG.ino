@@ -53,7 +53,7 @@ PubSubClient MQTT(espClient);
 unsigned long lastTime;
 float scoreX = 0;
 float scoreY = 0;
-float ax_prev = 0, ay_prev = 0, alpha = 0.9;
+
 
 char EstadoSaida = '0';
 
@@ -223,4 +223,5 @@ void handleAccel() {
     String mensagem = String(ax);
     MQTT.publish(TOPICO_PUBLISH_2, mensagem.c_str());
 }
+
 
