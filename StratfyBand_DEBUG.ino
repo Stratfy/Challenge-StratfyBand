@@ -21,9 +21,9 @@ const char* default_BROKER_MQTT = "20.163.23.245"; // IP do Broker MQTT
 const int default_BROKER_PORT = 1883; // Porta do Broker MQTT
 const char* default_TOPICO_SUBSCRIBE = "/TEF/band001/cmd"; // Tópico MQTT de escuta
 const char* default_TOPICO_PUBLISH_1 = "/TEF/band001/attrs"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_2 = "/TEF/band001/attrs/l"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_3 = "/TEF/band001/attrs/t"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_4 = "/TEF/band001/attrs/h"; // Tópico MQTT de envio de informações para Broker
+const char* default_TOPICO_PUBLISH_2 = "/TEF/band001/attrs/scoreX"; // Tópico MQTT de envio de informações para Broker
+const char* default_TOPICO_PUBLISH_3 = "/TEF/band001/attrs/scoreY"; // Tópico MQTT de envio de informações para Broker
+
 const char* default_ID_MQTT = "fiware_band001"; // ID MQTT
 const int default_D4 = 2; // Pino do LED onboard
 // Configurações do DHT22
@@ -220,8 +220,9 @@ void handleAccel() {
 
     Serial.print("Score X: "); Serial.print(scoreX);
     Serial.print(" | Score Y: "); Serial.println(scoreY);
-    String mensagem = String(ax);
-    MQTT.publish(TOPICO_PUBLISH_2, mensagem.c_str());
+    
+    MQTT.publish(TOPICO_PUBLISH_2, scoreX);
+    MQTT.publish(TOPICO_PUBLISH_3, scoreY);
 }
 
 
