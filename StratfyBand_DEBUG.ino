@@ -23,7 +23,7 @@ const char* default_TOPICO_SUBSCRIBE = "/TEF/band001/cmd"; // Tópico MQTT de es
 const char* default_TOPICO_PUBLISH_1 = "/TEF/band001/attrs"; // Tópico MQTT de envio de informações para Broker
 const char* default_TOPICO_PUBLISH_2 = "/TEF/band001/attrs/scoreX"; // Tópico MQTT de envio de informações para Broker
 const char* default_TOPICO_PUBLISH_3 = "/TEF/band001/attrs/scoreY"; // Tópico MQTT de envio de informações para Broker
-
+const char* default_TOPICO_PUBLISH_4 = "/TEF/band001/attrs/scoreZ";
 const char* default_ID_MQTT = "fiware_band001"; // ID MQTT
 const int default_D4 = 2; // Pino do LED onboard
 // Configurações do DHT22
@@ -53,6 +53,7 @@ PubSubClient MQTT(espClient);
 unsigned long lastTime;
 float scoreX = 0;
 float scoreY = 0;
+float scoreZ = 0;
 
 
 char EstadoSaida = '0';
@@ -78,23 +79,20 @@ void initMQTT() {
 void setup() {
     InitOutput();
     initSerial();
-    //initWiFi();
-    //initMQTT();
+    initWiFi();
+    initMQTT();
     lastTime = millis();
 
     Wire.begin(21,22);
     accelgyro.initialize();
     delay(5000);
-   // MQTT.publish(TOPICO_PUBLISH_1, "s|on");
+    MQTT.publish(TOPICO_PUBLISH_1, "s|on");
 }
 
 void loop() {
-    //VerificaConexoesWiFIEMQTT();
-    //EnviaEstadoOutputMQTT();
-    handleAccel();
-    // handleTemperature();
-    // handleHumidity();
-    //MQTT.loop();
+    VerificaConexoesWiFIEMQTT();
+    EnviaEstadoOutputMQTT();
+    MQTT.loop();
 }
 
 void reconectWiFi() {
@@ -133,9 +131,18 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
         digitalWrite(D4, HIGH);
         EstadoSaida = '1';
     }
+    while(msg.equals(onTopic)){
+        handleAccel();
+    }
 
     if (msg.equals(offTopic)) {
-        digitalWrite(D4, LOW);
+        String mX = String(scoreX);
+        String mY = String(scoreY);
+        String mZ = String(scoreZ);
+        MQTT.publish(TOPICO_PUBLISH_2, mX.c_str());
+        MQTT.publish(TOPICO_PUBLISH_3, mY.c_str());
+        MQTT.publish(TOPICO_PUBLISH_4, mZ.c_str());
+        scoreX = 0, scoreY = 0, scoreZ = 0;
         EstadoSaida = '0';
     }
 }
@@ -149,14 +156,14 @@ void VerificaConexoesWiFIEMQTT() {
 void EnviaEstadoOutputMQTT() {
     if (EstadoSaida == '1') {
         MQTT.publish(TOPICO_PUBLISH_1, "s|on");
-        Serial.println("- Led Ligado");
+        Serial.println("- Durante evento");
     }
 
     if (EstadoSaida == '0') {
         MQTT.publish(TOPICO_PUBLISH_1, "s|off");
-        Serial.println("- Led Desligado");
+        Serial.println("- Fora de evento");
     }
-    Serial.println("- Estado do LED onboard enviado ao broker!");
+    Serial.println("- Estado do evento enviado ao broker!");
     delay(1000);
 }
 
@@ -195,6 +202,7 @@ void handleAccel() {
     // Converte para g
     float ax_g = ax / 16384.0;
     float ay_g = ay / 16384.0;
+    float az_g = az / 16384.0;
 
     // Converte giroscópio para °/s (LSB = 131 para ±250°/s)
     float gx_dps = gx / 131.0;
@@ -202,8 +210,9 @@ void handleAccel() {
     float gz_dps = gz / 131.0;
 
     // Threshold para descartar ruído
-    if (fabs(ax_g) < 0.1) ax_g = 0;
-    if (fabs(ay_g) < 0.1) ay_g = 0;
+    if (fabs(ax_g) < 1) ax_g = 0;
+    if (fabs(ay_g) < 1) ay_g = 0;
+    if (fabs(az_g) < 1) az_g = 0;
     if (fabs(gx_dps) < 10 && fabs(gy_dps) < 10 && fabs(gz_dps) < 10) {
         // braço praticamente parado → não soma pontos
         return;
@@ -217,12 +226,12 @@ void handleAccel() {
     // Score só quando há aceleração + movimento real
     scoreX += fabs(ax_g) * dt;
     scoreY += fabs(ay_g) * dt;
+    scoreZ += fabs(az_g) * dt;
 
     Serial.print("Score X: "); Serial.print(scoreX);
     Serial.print(" | Score Y: "); Serial.println(scoreY);
-    
-    MQTT.publish(TOPICO_PUBLISH_2, scoreX);
-    MQTT.publish(TOPICO_PUBLISH_3, scoreY);
+    Serial.print(" | Score Z: "); Serial.println(scoreZ);
+
 }
 
 
