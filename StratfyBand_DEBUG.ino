@@ -1,4 +1,4 @@
-//Autor: Fábio Henrique Cabrini
+  //Autor: Fábio Henrique Cabrini
 //Resumo: Esse programa possibilita ligar e desligar o led onboard, além de mandar o status para o Broker MQTT possibilitando o Helix saber
 //se o led está ligado ou desligado.
 //Revisões:
@@ -15,21 +15,21 @@
 #include <math.h>
 
 // Configurações - variáveis editáveis
-const char* default_SSID = "Wokwi-GUEST"; // Nome da rede Wi-Fi
-const char* default_PASSWORD = ""; // Senha da rede Wi-Fi
-const char* default_BROKER_MQTT = "20.163.23.245"; // IP do Broker MQTT
+const char* default_SSID = "Google Mesh"; // Nome da rede Wi-Fi
+const char* default_PASSWORD = "K@6r1n1trovao"; // Senha da rede Wi-Fi
+const char* default_BROKER_MQTT = "52.180.152.18"; // IP do Broker MQTT
 const int default_BROKER_PORT = 1883; // Porta do Broker MQTT
-const char* default_TOPICO_SUBSCRIBE = "/TEF/band001/cmd"; // Tópico MQTT de escuta
-const char* default_TOPICO_PUBLISH_1 = "/TEF/band001/attrs"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_2 = "/TEF/band001/attrs/scoreX"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_3 = "/TEF/band001/attrs/scoreY"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_4 = "/TEF/band001/attrs/scoreZ";
-const char* default_ID_MQTT = "fiware_band001"; // ID MQTT
+const char* default_TOPICO_SUBSCRIBE = "/TEF/band002/cmd"; // Tópico MQTT de escuta
+const char* default_TOPICO_PUBLISH_1 = "/TEF/band002/attrs"; // Tópico MQTT de envio de informações para Broker
+const char* default_TOPICO_PUBLISH_2 = "/TEF/band002/attrs/scoreX"; // Tópico MQTT de envio de informações para Broker
+const char* default_TOPICO_PUBLISH_3 = "/TEF/band002/attrs/scoreY"; // Tópico MQTT de envio de informações para Broker
+const char* default_TOPICO_PUBLISH_4 = "/TEF/band002/attrs/scoreZ";
+const char* default_ID_MQTT = "fiware_band002"; // ID MQTT
 const int default_D4 = 2; // Pino do LED onboard
 // Configurações do DHT22
 
 // Declaração da variável para o prefixo do tópico
-const char* topicPrefix = "band001";
+const char* topicPrefix = "band002";
 
 // Variáveis para configurações editáveis
 char* SSID = const_cast<char*>(default_SSID);
@@ -57,6 +57,7 @@ float scoreZ = 0;
 
 
 char EstadoSaida = '0';
+bool emEvento = false;
 
 void initSerial() {
     Serial.begin(115200);
@@ -86,12 +87,15 @@ void setup() {
     Wire.begin(21,22);
     accelgyro.initialize();
     delay(5000);
-    MQTT.publish(TOPICO_PUBLISH_1, "s|on");
+    MQTT.publish(TOPICO_PUBLISH_1, "s|off");
 }
 
 void loop() {
     VerificaConexoesWiFIEMQTT();
     EnviaEstadoOutputMQTT();
+    if(emEvento){
+        handleAccel();
+    }  
     MQTT.loop();
 }
 
@@ -130,12 +134,13 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
     if (msg.equals(onTopic)) {
         digitalWrite(D4, HIGH);
         EstadoSaida = '1';
+        emEvento = true;
     }
-    while(msg.equals(onTopic)){
-        handleAccel();
-    }
+    
 
     if (msg.equals(offTopic)) {
+        EstadoSaida = '0';
+        emEvento = false;
         String mX = String(scoreX);
         String mY = String(scoreY);
         String mZ = String(scoreZ);
@@ -143,7 +148,7 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
         MQTT.publish(TOPICO_PUBLISH_3, mY.c_str());
         MQTT.publish(TOPICO_PUBLISH_4, mZ.c_str());
         scoreX = 0, scoreY = 0, scoreZ = 0;
-        EstadoSaida = '0';
+        
     }
 }
 
