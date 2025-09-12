@@ -78,6 +78,9 @@ void initWiFi() {
 }
 
 void initMQTT() {
+   
+    String clientId = "esp32-" + String((uint32_t)ESP.getEfuseMac(), HEX);
+    Serial.printf("\nConectando ao broker %s:%d com ID %s...\n",MQTT_HOST, MQTT_PORT, clientId.c_str()); 
     MQTT.setServer(BROKER_MQTT, BROKER_PORT);
     MQTT.setCallback(mqtt_callback);
     MQTT.setKeepAlive(60);        // <— aumenta keepalive
