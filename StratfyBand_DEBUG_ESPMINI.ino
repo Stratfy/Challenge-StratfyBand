@@ -17,6 +17,7 @@
 #include <math.h>
 
 // Configurações - variáveis editáveis
+const int band_ID = 2;
 const char* default_SSID = "Google Mesh"; // Nome da rede Wi-Fi
 const char* default_PASSWORD = "K@6r1n1trovao"; // Senha da rede Wi-Fi
 const char* default_BROKER_MQTT = "20.62.13.44"; // IP do Broker MQTT
@@ -34,6 +35,7 @@ const int default_D4 = 2; // Pino do LED onboard
 const char* topicPrefix = "band002";
 
 // Variáveis para configurações editáveis
+int BAND_ID = band_ID;
 char* SSID = const_cast<char*>(default_SSID);
 char* PASSWORD = const_cast<char*>(default_PASSWORD);
 char* BROKER_MQTT = const_cast<char*>(default_BROKER_MQTT);
@@ -57,6 +59,7 @@ float scoreX = 0;
 float scoreY = 0;
 float scoreZ = 0;
 
+int message = 0;
 
 char EstadoSaida = '0';
 bool emEvento = false;
@@ -95,6 +98,15 @@ void setup() {
 }
 
 void loop() {
+    if (Serial.available() > 0) {
+        String entrada = Serial.readString();
+        entrada.trim();
+
+        if (entrada == "1") {
+            Serial.println("🔧 Entrando no modo de configuração...");
+            configurations();
+        }
+    }
     VerificaConexoesWiFIEMQTT();
     EnviaEstadoOutputMQTT();
     if(emEvento){
@@ -106,20 +118,42 @@ void loop() {
 void reconectWiFi() {
     if (WiFi.status() == WL_CONNECTED)
         return;
+
+    Serial.print("🔌 Conectando à rede: ");
+    Serial.println(SSID);
+
     WiFi.begin(SSID, PASSWORD);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(100);
+
+    unsigned long startAttemptTime = millis();
+    const unsigned long timeout = 10000; // 10 segundos
+
+    // tenta até conectar ou atingir o timeout
+    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < timeout) {
+        delay(500);
         Serial.print(".");
     }
-    Serial.println();
-    Serial.println("Conectado com sucesso na rede ");
-    Serial.print(SSID);
-    Serial.println("IP obtido: ");
-    Serial.println(WiFi.localIP());
 
-    // Garantir que o LED inicie desligado
-    digitalWrite(D4, LOW);
+    // se conectou, mostra info
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println();
+        Serial.println("✅ Conectado com sucesso na rede!");
+        Serial.print("SSID: ");
+        Serial.println(SSID);
+        Serial.print("IP obtido: ");
+        Serial.println(WiFi.localIP());
+
+        digitalWrite(D4, LOW);
+    } else {
+        Serial.println();
+        Serial.println("❌ Falha ao conectar no WiFi dentro do tempo limite.");
+        Serial.println("➡️ Tentará novamente em background...");
+
+        // ⚠️ Não chamar configurations() aqui
+        // Apenas deixar sem conexão e tentar de novo no loop
+    }
 }
+
+
 
 void mqtt_callback(char* topic, byte* payload, unsigned int length) {
     String msg;
@@ -244,4 +278,45 @@ void handleAccel() {
 
 }
 
+void configurations() {
+    Serial.println("Configurações na serial\n10. SSID\n11. BROKER MQTT\n12. ID DA BAND");
+
+    while (Serial.available() == 0) {}  // espera entrada
+    String command = Serial.readString();
+    command.trim();  // remove espaços e quebras de linha
+
+    if (command == "10") {
+        Serial.println("Digite o novo SSID: ");
+        while (Serial.available() == 0) {}
+        String newMessage = Serial.readString();
+        newMessage.trim();
+        SSID = strdup(newMessage.c_str());  // duplica string para memória estática
+
+        Serial.println("Digite a nova senha: ");
+        while (Serial.available() == 0) {}
+        newMessage = Serial.readString();
+        newMessage.trim();
+        PASSWORD = strdup(newMessage.c_str());
+
+    } else if (command == "11") {
+        Serial.println("Digite o novo IP: ");
+        while (Serial.available() == 0) {}
+        String newMessage = Serial.readString();
+        newMessage.trim();
+        BROKER_MQTT = strdup(newMessage.c_str());
+
+    } else if (command == "12") {
+        Serial.println("Digite o novo ID da BAND: ");
+        while (Serial.available() == 0) {}
+        String newMessage = Serial.readString();
+        newMessage.trim();
+        BAND_ID = newMessage.toInt();
+
+    } else {
+        Serial.println("Nada selecionado.");
+    }
+
+    initWiFi();
+    initMQTT();
+}
 
