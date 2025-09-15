@@ -2,8 +2,8 @@
 #include <PubSubClient.h>
 
 // --- CONFIGURAÇÃO ---
-const char* SSID       = "SEU_WIFI";       // ajuste aqui
-const char* PASSWORD   = "SUA_SENHA";      // ajuste aqui
+const char* SSID       = "FIAP-IOT";       // ajuste aqui
+const char* PASSWORD   = "F!@p25.IOT";      // ajuste aqui
 const char* MQTT_HOST  = "52.180.152.18";  // broker
 const int   MQTT_PORT  = 1883;             // porta (1883 = sem TLS, 8883 = TLS)
 const char* MQTT_TOPIC = "test/hello";
