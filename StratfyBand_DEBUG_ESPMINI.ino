@@ -18,21 +18,21 @@
 
 // Configurações - variáveis editáveis
 const int band_ID = 2;
-const char* default_SSID = "Google Mesh"; // Nome da rede Wi-Fi
-const char* default_PASSWORD = "K@6r1n1trovao"; // Senha da rede Wi-Fi
+const char* default_SSID = "Thinkphone"; // Nome da rede Wi-Fi
+const char* default_PASSWORD = "pobrefeio"; // Senha da rede Wi-Fi
 const char* default_BROKER_MQTT = "20.62.13.44"; // IP do Broker MQTT
 const int default_BROKER_PORT = 1883; // Porta do Broker MQTT
-const char* default_TOPICO_SUBSCRIBE = "/TEF/band002/cmd"; // Tópico MQTT de escuta
-const char* default_TOPICO_PUBLISH_1 = "/TEF/band002/attrs"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_2 = "/TEF/band002/attrs/scoreX"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_3 = "/TEF/band002/attrs/scoreY"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_4 = "/TEF/band002/attrs/scoreZ";
-const char* default_ID_MQTT = "fiware_band002"; // ID MQTT
+const char* default_TOPICO_SUBSCRIBE = "/TEF/band001/cmd"; // Tópico MQTT de escuta
+const char* default_TOPICO_PUBLISH_1 = "/TEF/band001/attrs"; // Tópico MQTT de envio de informações para Broker
+const char* default_TOPICO_PUBLISH_2 = "/TEF/band001/attrs/scoreX"; // Tópico MQTT de envio de informações para Broker
+const char* default_TOPICO_PUBLISH_3 = "/TEF/band001/attrs/scoreY"; // Tópico MQTT de envio de informações para Broker
+const char* default_TOPICO_PUBLISH_4 = "/TEF/band001/attrs/scoreZ";
+const char* default_ID_MQTT = "fiware_band001"; // ID MQTT
 const int default_D4 = 2; // Pino do LED onboard
 // Configurações do DHT22
 
 // Declaração da variável para o prefixo do tópico
-const char* topicPrefix = "band002";
+const char* topicPrefix = "band001";
 
 // Variáveis para configurações editáveis
 int BAND_ID = band_ID;
@@ -91,7 +91,7 @@ void setup() {
     initMQTT();
     lastTime = millis();
 
-    Wire.begin(21,22);
+    Wire.begin(6,7);
     accelgyro.initialize();
     delay(5000);
     MQTT.publish(TOPICO_PUBLISH_1, "s|off");
@@ -125,7 +125,7 @@ void reconectWiFi() {
     WiFi.begin(SSID, PASSWORD);
 
     unsigned long startAttemptTime = millis();
-    const unsigned long timeout = 10000; // 10 segundos
+    const unsigned long timeout = 30000;
 
     // tenta até conectar ou atingir o timeout
     while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < timeout) {
@@ -226,6 +226,7 @@ void reconnectMQTT() {
     while (!MQTT.connected()) {
         Serial.print("* Tentando se conectar ao Broker MQTT: ");
         Serial.println(BROKER_MQTT);
+        
         if (MQTT.connect(ID_MQTT)) {
             Serial.println("Conectado com sucesso ao broker MQTT!");
             MQTT.subscribe(TOPICO_SUBSCRIBE);
