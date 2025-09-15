@@ -18,21 +18,21 @@
 
 // Configurações - variáveis editáveis
 const int band_ID = 2;
-const char* default_SSID = "Thinkphone"; // Nome da rede Wi-Fi
-const char* default_PASSWORD = "pobrefeio"; // Senha da rede Wi-Fi
+const char* default_SSID = "FIAP-IOT"; // Nome da rede Wi-Fi
+const char* default_PASSWORD = "F!@p25.IOT"; // Senha da rede Wi-Fi
 const char* default_BROKER_MQTT = "20.62.13.44"; // IP do Broker MQTT
 const int default_BROKER_PORT = 1883; // Porta do Broker MQTT
-const char* default_TOPICO_SUBSCRIBE = "/TEF/band001/cmd"; // Tópico MQTT de escuta
-const char* default_TOPICO_PUBLISH_1 = "/TEF/band001/attrs"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_2 = "/TEF/band001/attrs/scoreX"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_3 = "/TEF/band001/attrs/scoreY"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_4 = "/TEF/band001/attrs/scoreZ";
-const char* default_ID_MQTT = "fiware_band001"; // ID MQTT
+const char* default_TOPICO_SUBSCRIBE = "/TEF/band010/cmd"; // Tópico MQTT de escuta
+const char* default_TOPICO_PUBLISH_1 = "/TEF/band010/attrs"; // Tópico MQTT de envio de informações para Broker
+const char* default_TOPICO_PUBLISH_2 = "/TEF/band010/attrs/scoreX"; // Tópico MQTT de envio de informações para Broker
+const char* default_TOPICO_PUBLISH_3 = "/TEF/band010/attrs/scoreY"; // Tópico MQTT de envio de informações para Broker
+const char* default_TOPICO_PUBLISH_4 = "/TEF/band010/attrs/scoreZ";
+const char* default_ID_MQTT = "fiware_band010"; // ID MQTT
 const int default_D4 = 2; // Pino do LED onboard
 // Configurações do DHT22
 
 // Declaração da variável para o prefixo do tópico
-const char* topicPrefix = "band001";
+const char* topicPrefix = "band010";
 
 // Variáveis para configurações editáveis
 int BAND_ID = band_ID;
@@ -80,9 +80,12 @@ void initWiFi() {
 void initMQTT() {
     MQTT.setServer(BROKER_MQTT, BROKER_PORT);
     MQTT.setCallback(mqtt_callback);
-    MQTT.setKeepAlive(60);        // <— aumenta keepalive
+    MQTT.setKeepAlive(60);
     MQTT.setSocketTimeout(10);
+    MQTT.setBufferSize(MQTT_MAX_PACKET_SIZE);
 }
+
+
 
 void setup() {
     InitOutput();
@@ -93,20 +96,20 @@ void setup() {
 
     Wire.begin(6,7);
     accelgyro.initialize();
-    delay(5000);
+    delay(100);
     MQTT.publish(TOPICO_PUBLISH_1, "s|off");
 }
 
 void loop() {
-    if (Serial.available() > 0) {
-        String entrada = Serial.readString();
-        entrada.trim();
+    // if (Serial.available() > 0) {
+    //     String entrada = Serial.readString();
+    //     entrada.trim();
 
-        if (entrada == "1") {
-            Serial.println("🔧 Entrando no modo de configuração...");
-            configurations();
-        }
-    }
+    //     if (entrada == "1") {
+    //         Serial.println("🔧 Entrando no modo de configuração...");
+    //         configurations();
+    //     }
+    // }
     VerificaConexoesWiFIEMQTT();
     EnviaEstadoOutputMQTT();
     if(emEvento){
@@ -241,7 +244,10 @@ void reconnectMQTT() {
 
 //MUDAR PARA GIROSCÓPIO 
 void handleAccel() {
-    int16_t ax, ay, az, gx, gy, gz;
+    unsigned long now = millis();
+    while(millis() - now  < 10000)
+    {
+        int16_t ax, ay, az, gx, gy, gz;
     accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
     // Converte para g
@@ -264,7 +270,7 @@ void handleAccel() {
     }
 
     // Tempo para integração
-    unsigned long now = millis();
+    
     float dt = (now - lastTime) / 1000.0;
     lastTime = now;
 
@@ -276,6 +282,7 @@ void handleAccel() {
     Serial.print("Score X: "); Serial.print(scoreX);
     Serial.print(" | Score Y: "); Serial.println(scoreY);
     Serial.print(" | Score Z: "); Serial.println(scoreZ);
+    }
 
 }
 
