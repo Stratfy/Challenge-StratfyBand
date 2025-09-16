@@ -1,13 +1,4 @@
-//Autor: Fábio Henrique Cabrini
-//Resumo: Esse programa possibilita ligar e desligar o led onboard, além de mandar o status para o Broker MQTT possibilitando o Helix saber
-//se o led está ligado ou desligado.
-//Revisões:
-//Rev1: 26-08-2023 Código portado para o ESP32 e para realizar a leitura de luminosidade e publicar o valor em um tópico aprorpiado do broker
-//Autor Rev1: Lucas Demetrius Augusto
-//Rev2: 28-08-2023 Ajustes para o funcionamento no FIWARE Descomplicado
-//Autor Rev2: Fábio Henrique Cabrini
-//Rev3: 1-11-2023 Refinamento do código e ajustes para o funcionamento no FIWARE Descomplicado
-//Autor Rev3: Fábio Henrique Cabrini
+
 
 #define MQTT_MAX_PACKET_SIZE 1024
 #define MQTT_VERSION MQTT_VERSION_3_1_1
@@ -311,3 +302,4 @@ void handleAccel() {
   Serial.print(" | Score Y: "); Serial.println(scoreY);
   Serial.print(" | Score Z: "); Serial.println(scoreZ);
 }
+

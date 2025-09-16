@@ -1,0 +1,1106 @@
+{
+	"info": {
+		"_postman_id": "47458148-8fdabb2c-3d5a-455c-aeff-f1c3b2aa228c",
+		"name": "FIWARE_StratfyBand",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "IOT Agent MQTT",
+			"item": [
+				{
+					"name": "1.1 Health Check",
+					"id": "47458148-17ed71c0-fdf9-481e-9e12-647f21219422",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://{{url}}:4041/iot/about",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "4041",
+							"path": [
+								"iot",
+								"about"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2. Provisioning a Service Group for MQTT",
+					"id": "47458148-8b48dc0b-965a-49e0-a599-1dcee1c3d47a",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n \"services\": [\n   {\n     \"apikey\":      \"TEF\",               // Chave de acesso para o serviço (API Key)\n     \"cbroker\":     \"http://{{url}}:1026\", // URL do Orion Context Broker associado ao serviço\n     \"entity_type\": \"Thing\",             // Tipo de entidade associado ao serviço\n     \"resource\":    \"\"                   // Recurso associado ao serviço (pode estar vazio)\n   }\n ]\n}\n"
+						},
+						"url": {
+							"raw": "http://{{url}}:4041/iot/services",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "4041",
+							"path": [
+								"iot",
+								"services"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2.1 Health Check Services",
+					"id": "47458148-640f31f2-0fcf-4e1f-a956-f9018be7a8c5",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://{{url}}:4041/iot/services",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "4041",
+							"path": [
+								"iot",
+								"services"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2.1 Delete a Service Group",
+					"id": "47458148-9c1abc2b-ca02-4351-b943-60079a49e7af",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "fiware-service",
+								"value": "smart"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://{{url}}:4041/iot/services/?resource=&apikey=TEF",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "4041",
+							"path": [
+								"iot",
+								"services",
+								""
+							],
+							"query": [
+								{
+									"key": "resource",
+									"value": "",
+									"description": "The path that the IoT Agent had been listening on"
+								},
+								{
+									"key": "apikey",
+									"value": "TEF"
+								}
+							]
+						},
+						"description": "This example removes a provisioned service group by making a DELETE request to the `/iot/services/` endpoint.\n\nIt means that requests to `http://iot-agent:7896/iot/d?i=<device_id>&k=4jggokgpepnvsb2uv4s40d59ov`\n(where the IoT Agent is listening for **Northbound** communications) should no longer be processed by the IoT Agent. \nThe `apiKey` and `resource` parameters must be supplied in order to identify the service group to be deleted."
+					},
+					"response": []
+				},
+				{
+					"name": "3. Provisioning a StrBand",
+					"id": "47458148-0bde15dd-4185-4bbc-b9b4-48cb8133a2ca",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"devices\": [\n    {\n      \"device_id\": \"lamp001\",         // Identificador único do dispositivo\n      \"entity_name\": \"urn:ngsi-ld:Lamp:001\",   // Nome da entidade para o dispositivo (formato URN)\n      \"entity_type\": \"Lamp\",          // Tipo da entidade (neste caso, \"Lamp\")\n      \"protocol\": \"PDI-IoTA-UltraLight\",  // Protocolo usado para a comunicação (no exemplo, PDI-IoTA-UltraLight)\n      \"transport\": \"MQTT\",            // Método de transporte (neste caso, MQTT)\n\n      // Lista de comandos que o dispositivo pode receber\n      \"commands\": [\n        { \"name\": \"on\", \"type\": \"command\" },  // Comando para ligar\n        { \"name\": \"off\", \"type\": \"command\" }  // Comando para desligar\n      ],\n\n      // Lista de atributos associados ao dispositivo\n      \"attributes\": [\n        { \"object_id\": \"s\", \"name\": \"state\", \"type\": \"Text\" }, // Atributo de estado (Texto)\n        { \"object_id\": \"l\", \"name\": \"luminosity\", \"type\": \"Integer\" }  // Atributo de luminosidade (Inteiro)\n      ]\n    }\n  ]\n}\n"
+						},
+						"url": {
+							"raw": "http://{{url}}:4041/iot/devices",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "4041",
+							"path": [
+								"iot",
+								"devices"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "4. Registering StrBand Commands",
+					"id": "47458148-bd4e36c4-9046-4f9c-b90b-d806b0e86b3a",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Lamp Commands\", // Descrição do serviço de notificação\n  \"dataProvided\": {\n    \"entities\": [\n      {\n        \"id\": \"urn:ngsi-ld:Lamp:001\", \"type\": \"Lamp\" // Definição da entidade a ser monitorada\n      }\n    ],\n    \"attrs\": [\"on\", \"off\"] // Atributos a serem monitorados (no caso, 'on' e 'off')\n  },\n  \"provider\": {\n    \"http\": { \"url\": \"http://{{url}}:4041\" }, // URL do serviço a ser notificado\n    \"legacyForwarding\": true // Indicação para encaminhar notificações de forma legada (se aplicável)\n  }\n}\n"
+						},
+						"url": {
+							"raw": "http://{{url}}:1026/v2/registrations",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"registrations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "5. List all Devices Provisioned",
+					"id": "47458148-eb6b4ba3-2c0b-4f55-9897-f32de8404e3d",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://{{url}}:4041/iot/devices",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "4041",
+							"path": [
+								"iot",
+								"devices"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "6. Event on/off",
+					"id": "47458148-654da061-ee1e-4490-bb1c-cbfe335cbad6",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"on\": {\n      \"type\" : \"command\",\n      \"value\" : \"\"\n  }\n}"
+						},
+						"url": {
+							"raw": "http://{{url}}:1026/v2/entities/urn:ngsi-ld:Lamp:001/attrs",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"entities",
+								"urn:ngsi-ld:Lamp:001",
+								"attrs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "7. Get Band ScoreX",
+					"id": "47458148-94b5d72d-6ba2-43bf-8ab2-73d47d05d44c",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							},
+							{
+								"key": "accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://{{url}}:1026/v2/entities/urn:ngsi-ld:Lamp:001/attrs/luminosity",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"entities",
+								"urn:ngsi-ld:Lamp:001",
+								"attrs",
+								"luminosity"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "7. Get Band ScoreY",
+					"id": "47458148-68ee5dad-43a2-4300-922f-209fd2becd04",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							},
+							{
+								"key": "accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://{{url}}:1026/v2/entities/urn:ngsi-ld:Lamp:001/attrs/luminosity",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"entities",
+								"urn:ngsi-ld:Lamp:001",
+								"attrs",
+								"luminosity"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "7. Get Band ScoreZ",
+					"id": "47458148-6a925e6a-82d2-487e-ac6a-a3b65b3d366d",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							},
+							{
+								"key": "accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://{{url}}:1026/v2/entities/urn:ngsi-ld:Lamp:001/attrs/luminosity",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"entities",
+								"urn:ngsi-ld:Lamp:001",
+								"attrs",
+								"luminosity"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "8. Result of StrBand State",
+					"id": "47458148-28777f7e-e193-4b77-9b6b-a9558e2f4d2a",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							},
+							{
+								"key": "accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://{{url}}:1026/v2/entities/urn:ngsi-ld:Lamp:001/attrs/state",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"entities",
+								"urn:ngsi-ld:Lamp:001",
+								"attrs",
+								"state"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "9. Delete StrBand in IoT Agent",
+					"id": "47458148-45676f89-bda0-4bbf-b792-47cd56de35d9",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://{{url}}:4041/iot/devices/lamp001",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "4041",
+							"path": [
+								"iot",
+								"devices",
+								"lamp001"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "10. Delete StrBand in Orion",
+					"id": "47458148-a7515ada-d6af-4689-a427-50c5b372ac28",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": []
+						},
+						"url": {
+							"raw": "http://{{url}}:1026/v2/entities/urn:ngsi-ld:Lamp:001",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"entities",
+								"urn:ngsi-ld:Lamp:001"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "Thing",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "47458148-8bfbf3df-4852-4219-801b-cf4bf9502a6c",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						],
+						"id": "b718283f-5f5a-4dca-accd-a3352d7dc8d3"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						],
+						"id": "9e6e7254-13ff-44bc-b9e8-5851bb43b9e5"
+					}
+				}
+			]
+		},
+		{
+			"name": "STH-Comet",
+			"item": [
+				{
+					"name": "1. Health Check",
+					"id": "47458148-39accc29-95cd-44a6-b521-4681980c1b53",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://{{url}}:8666/version",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "8666",
+							"path": [
+								"version"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2. Subscribe Luminosity",
+					"id": "47458148-3ff012f9-40b8-4090-a851-4e0a2f561dba",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"description\": \"Notify STH-Comet of all Motion Sensor count changes\", // Descrição da notificação\r\n  \"subject\": {\r\n    \"entities\": [\r\n      {\r\n        \"id\": \"urn:ngsi-ld:Lamp:001\",\r\n        \"type\": \"Lamp\"\r\n      }\r\n    ],\r\n    \"condition\": { \"attrs\": [\"luminosity\"] } // Condição para acionar a notificação (alteração de luminosidade)\r\n  },\r\n  \"notification\": {\r\n    \"http\": {\r\n      \"url\": \"http://{{url}}:8666/notify\" // URL para notificação do STH-Comet\r\n    },\r\n    \"attrs\": [\r\n      \"luminosity\" // Atributo a ser notificado (luminosidade)\r\n    ],\r\n    \"attrsFormat\": \"legacy\" // Formato dos atributos a ser notificado (legado)\r\n  }\r\n}"
+						},
+						"url": {
+							"raw": "http://{{url}}:1026/v2/subscriptions",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"subscriptions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2. Subscribe Luminosity Copy",
+					"id": "47458148-3390cade-4563-4c67-8db0-30e1e0cfe0df",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"description\": \"Notify STH-Comet of all Motion Sensor count changes\", // Descrição da notificação\r\n  \"subject\": {\r\n    \"entities\": [\r\n      {\r\n        \"id\": \"urn:ngsi-ld:Lamp:001\",\r\n        \"type\": \"Lamp\"\r\n      }\r\n    ],\r\n    \"condition\": { \"attrs\": [\"luminosity\"] } // Condição para acionar a notificação (alteração de luminosidade)\r\n  },\r\n  \"notification\": {\r\n    \"http\": {\r\n      \"url\": \"http://{{url}}:8666/notify\" // URL para notificação do STH-Comet\r\n    },\r\n    \"attrs\": [\r\n      \"luminosity\" // Atributo a ser notificado (luminosidade)\r\n    ],\r\n    \"attrsFormat\": \"legacy\" // Formato dos atributos a ser notificado (legado)\r\n  }\r\n}"
+						},
+						"url": {
+							"raw": "http://{{url}}:1026/v2/subscriptions",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"subscriptions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3. Request Luminosity",
+					"id": "47458148-bdb063b4-1703-49fd-ae18-6972696a55a4",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://{{url}}:8666/STH/v1/contextEntities/type/Lamp/id/urn:ngsi-ld:Lamp:001/attributes/luminosity?lastN=30",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "8666",
+							"path": [
+								"STH",
+								"v1",
+								"contextEntities",
+								"type",
+								"Lamp",
+								"id",
+								"urn:ngsi-ld:Lamp:001",
+								"attributes",
+								"luminosity"
+							],
+							"query": [
+								{
+									"key": "hLimit",
+									"value": "100",
+									"description": "Este parâmetro limita o número máximo de resultados retornados em uma única consulta de histórico. No exemplo, está configurado para 100, o que significa que, no máximo, 100 pontos de dados serão retornados em uma única solicitação.",
+									"disabled": true
+								},
+								{
+									"key": "hOffset",
+									"value": "1",
+									"description": "Define o deslocamento da consulta. É usado para recuperar resultados além do limite. No exemplo, está configurado como 1, o que significa que a consulta começará a partir do segundo resultado (ignorando o primeiro resultado).",
+									"disabled": true
+								},
+								{
+									"key": "lastN",
+									"value": "30",
+									"description": "Especifica o número de resultados mais recentes a serem recuperados. Neste caso, está configurado como 20, o que resultará na recuperação dos 20 dados mais recentes."
+								},
+								{
+									"key": "aggrMethod",
+									"value": "occur",
+									"description": "Define o método de agregação utilizado nos resultados. No exemplo, está configurado como 'occur', sugerindo que a agregação é feita com base na ocorrência dos eventos.",
+									"disabled": true
+								},
+								{
+									"key": "aggrPeriod",
+									"value": "hour",
+									"description": "Define o período de agregação. Neste caso, está configurado para 'hour' (hora), o que sugere que os dados estão sendo agregados em intervalos de hora.",
+									"disabled": true
+								},
+								{
+									"key": "dateFrom",
+									"value": "2023-08-02T18:28:21.237",
+									"description": "Formato UTC",
+									"disabled": true
+								},
+								{
+									"key": "dateTo",
+									"value": "2023-08-03T10:28:21.237",
+									"description": "Formato UTC",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "47458148-783c96b3-27a2-4dce-ba2f-e9525ac51fda"
+		},
+		{
+			"name": "Orion Context Broker",
+			"item": [
+				{
+					"name": "1.Version",
+					"id": "47458148-5e5f3cb6-8b2b-4db1-a88f-267411970135",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://{{url}}:1026/version",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"version"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2.Create",
+					"id": "47458148-b88c92c2-1a6d-429b-b9fd-05ae6b40cd05",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"id\": \"urn:ngsi-ld:entity:001\",\r\n  \"type\": \"iot\",\r\n  \"temperature\": {\r\n  \"type\": \"float\",\r\n  \"value\": 0\r\n    }\r\n,\r\n  \"humidity\": {\r\n  \"type\": \"float\",\r\n  \"value\": 0\r\n\t}\r\n}\r\n\r\n  \r\n"
+						},
+						"url": {
+							"raw": "http://{{url}}:1026/v2/entities",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"entities"
+							]
+						},
+						"description": "cria entidade"
+					},
+					"response": []
+				},
+				{
+					"name": "3.Get ",
+					"id": "47458148-052fe18f-5733-498a-8907-62ede483b1ba",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://{{url}}:1026/v2/entities",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"entities"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "4.Update",
+					"id": "47458148-308601bb-1e2b-4518-89cd-912e18700205",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"temperature\": {\r\n  \"type\": \"float\",\r\n  \"value\":35\r\n    }\r\n,\r\n  \"humidity\": {\r\n  \"type\": \"float\",\r\n  \"value\": 60\r\n\t}\r\n}\r\n"
+						},
+						"url": {
+							"raw": "http://{{url}}:1026/v2/entities/urn:ngsi-ld:entity:001/attrs",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"entities",
+								"urn:ngsi-ld:entity:001",
+								"attrs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "5.Selective_update_temperature",
+					"id": "47458148-cfb689cd-e469-4bb3-ba4c-47910995a353",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "95"
+						},
+						"url": {
+							"raw": "http://{{url}}:1026/v2/entities/urn:ngsi-ld:entity:001/attrs/temperature/value",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"entities",
+								"urn:ngsi-ld:entity:001",
+								"attrs",
+								"temperature",
+								"value"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "6.Selective_update_humidity",
+					"id": "47458148-f1544d81-0e25-4078-bd7e-4b4381c5e1dd",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "10"
+						},
+						"url": {
+							"raw": "http://{{url}}:1026/v2/entities/urn:ngsi-ld:entity:001/attrs/humidity/value",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"entities",
+								"urn:ngsi-ld:entity:001",
+								"attrs",
+								"humidity",
+								"value"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "7.Delete",
+					"id": "47458148-3f16824a-1daa-43f8-bc1a-83c2be5c8a13",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": []
+						},
+						"url": {
+							"raw": "http://{{url}}:1026/v2/entities/urn:ngsi-ld:entity:001",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"entities",
+								"urn:ngsi-ld:entity:001"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "Thing",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "47458148-977ea866-507e-40a5-b2fd-c9ec546e4ae2"
+		}
+	]
+}
