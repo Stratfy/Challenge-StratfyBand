@@ -3,6 +3,13 @@
 Projeto de **Smart Band** com **ESP32** e acelerômetro integrado ao **FIWARE Descomplicado**.  
 O dispositivo envia **dados do sensor** **ou** uma **pontuação (pseudo-score) calculada no edge**; esses dados serão consumidos para montar um **leaderboard de pontos**.
 
+## Deploy FIWARE Architecture
+
+A arquitetura FIWARE pode ser implantada de forma modular, permitindo a integração de diversos componentes conforme a necessidade do projeto.  
+O diagrama abaixo ilustra um exemplo de deployment, destacando os principais building blocks utilizados na solução:
+
+![FIWARE Architecture](https://imgur.com/a/0Q8394m)
+
 ---
 
 ## ✨ Objetivos
