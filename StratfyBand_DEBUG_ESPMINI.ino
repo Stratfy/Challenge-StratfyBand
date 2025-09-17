@@ -1,333 +1,265 @@
-  //Autor: Fábio Henrique Cabrini
-//Resumo: Esse programa possibilita ligar e desligar o led onboard, além de mandar o status para o Broker MQTT possibilitando o Helix saber
-//se o led está ligado ou desligado.
-//Revisões:
-//Rev1: 26-08-2023 Código portado para o ESP32 e para realizar a leitura de luminosidade e publicar o valor em um tópico aprorpiado do broker 
-//Autor Rev1: Lucas Demetrius Augusto 
-//Rev2: 28-08-2023 Ajustes para o funcionamento no FIWARE Descomplicado
-//Autor Rev2: Fábio Henrique Cabrini
-//Rev3: 1-11-2023 Refinamento do código e ajustes para o funcionamento no FIWARE Descomplicado
-//Autor Rev3: Fábio Henrique Cabrini
+//Autor: Fábio Henrique Cabrini
+//Rev: MQTT robusto + filtros anti-estouro (baseline, dt cap) + publicação cadenciada
+
 #define MQTT_MAX_PACKET_SIZE 1024
-#define MQTT_VERSION MQTT_VERSION_3_1_1 
+#define MQTT_VERSION MQTT_VERSION_3_1_1
+
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <Wire.h>
 #include <MPU6050.h>
 #include <math.h>
 
-// Configurações - variáveis editáveis
-const int band_ID = 2;
-const char* default_SSID = "FIAP-IOT"; // Nome da rede Wi-Fi
-const char* default_PASSWORD = "F!@p25.IOT"; // Senha da rede Wi-Fi
-const char* default_BROKER_MQTT = "20.62.13.44"; // IP do Broker MQTT
-const int default_BROKER_PORT = 1883; // Porta do Broker MQTT
-const char* default_TOPICO_SUBSCRIBE = "/TEF/band010/cmd"; // Tópico MQTT de escuta
-const char* default_TOPICO_PUBLISH_1 = "/TEF/band010/attrs"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_2 = "/TEF/band010/attrs/scoreX"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_3 = "/TEF/band010/attrs/scoreY"; // Tópico MQTT de envio de informações para Broker
-const char* default_TOPICO_PUBLISH_4 = "/TEF/band010/attrs/scoreZ";
-const char* default_ID_MQTT = "fiware_band010"; // ID MQTT
-const int default_D4 = 2; // Pino do LED onboard
-// Configurações do DHT22
+// =================== Config ===================
+const int   band_ID                 = 2;
+const char* default_SSID            = "Thinkphone";
+const char* default_PASSWORD        = "pobrefeio";
+const char* default_BROKER_MQTT     = "20.62.13.44";
+const int   default_BROKER_PORT     = 1883;
 
-// Declaração da variável para o prefixo do tópico
-const char* topicPrefix = "band010";
+// Tópicos IoT Agent (UL 2.0 / MQTT)
+const char* default_TOPICO_SUBSCRIBE= "/TEF/band010/cmd";
+const char* default_TOPICO_PUBLISH_1= "/TEF/band010/attrs";          // UL: k1|v1|k2|v2...
+const char* default_TOPICO_PUBLISH_2= "/TEF/band010/attrs/scoreX";   // alternativo: 1 por atributo
+const char* default_TOPICO_PUBLISH_3= "/TEF/band010/attrs/scoreY";
+const char* default_TOPICO_PUBLISH_4= "/TEF/band010/attrs/scoreZ";
 
-// Variáveis para configurações editáveis
-int BAND_ID = band_ID;
-char* SSID = const_cast<char*>(default_SSID);
-char* PASSWORD = const_cast<char*>(default_PASSWORD);
-char* BROKER_MQTT = const_cast<char*>(default_BROKER_MQTT);
-int BROKER_PORT = default_BROKER_PORT;
-char* TOPICO_SUBSCRIBE = const_cast<char*>(default_TOPICO_SUBSCRIBE);
-char* TOPICO_PUBLISH_1 = const_cast<char*>(default_TOPICO_PUBLISH_1);
-char* TOPICO_PUBLISH_2 = const_cast<char*>(default_TOPICO_PUBLISH_2);
-char* TOPICO_PUBLISH_3 = const_cast<char*>(default_TOPICO_PUBLISH_3);
-char* TOPICO_PUBLISH_4 = const_cast<char*>(default_TOPICO_PUBLISH_4);
-char* ID_MQTT = const_cast<char*>(default_ID_MQTT);
-int D4 = default_D4;
+const char* default_ID_MQTT         = "fiware_band010";  // vai ser encurtado p/ 23 chars
+const int   default_D4              = 2;
 
+const char* topicPrefix = "band010"; // payload de comando: "band010@on|" / "band010@off|"
 
+// =================== Globais ===================
+int   BAND_ID          = band_ID;
+char* SSID             = (char*)default_SSID;
+char* PASSWORD         = (char*)default_PASSWORD;
+char* BROKER_MQTT      = (char*)default_BROKER_MQTT;
+int   BROKER_PORT      = default_BROKER_PORT;
+char* TOPICO_SUBSCRIBE = (char*)default_TOPICO_SUBSCRIBE;
+char* TOPICO_PUBLISH_1 = (char*)default_TOPICO_PUBLISH_1;
+char* TOPICO_PUBLISH_2 = (char*)default_TOPICO_PUBLISH_2;
+char* TOPICO_PUBLISH_3 = (char*)default_TOPICO_PUBLISH_3;
+char* TOPICO_PUBLISH_4 = (char*)default_TOPICO_PUBLISH_4;
+char* ID_MQTT          = (char*)default_ID_MQTT;
+int   D4               = default_D4;
 
 MPU6050 accelgyro;
 WiFiClient espClient;
 PubSubClient MQTT(espClient);
 
-unsigned long lastTime;
-float scoreX = 0;
-float scoreY = 0;
-float scoreZ = 0;
+// ---- Estado scores ----
+float scoreX = 0, scoreY = 0, scoreZ = 0;
+char  EstadoSaida = '0';
+bool  emEvento    = false;
 
-int message = 0;
+// ---- Tempo / heartbeat / publicação ----
+unsigned long lastMs        = 0;         // p/ dt
+unsigned long lastWifiTry   = 0;
+unsigned long lastMqttTry   = 0;
+unsigned long lastStatusMs  = 0;
+unsigned long lastPubMs     = 0;
 
-char EstadoSaida = '0';
-bool emEvento = false;
+const  unsigned long WIFI_RETRY_MS   = 6000;
+const  unsigned long MQTT_RETRY_MS   = 3000;
+const  unsigned long STATUS_EVERY_MS = 1000;
+const  unsigned long PUB_EVERY_MS    = 200;   // envia dados a cada 200 ms
 
-void initSerial() {
-    Serial.begin(115200);
+// ---- Anti-estouro / filtros ----
+const float DT_CAP        = 0.20f;  // dt máx 200 ms
+const float A_CLAMP       = 4.0f;   // clamp de aceleração em g
+const float DEADBAND_G    = 0.02f;  // 20 mg
+
+// ---- Baseline (zeragem no ON) ----
+float ax0=0, ay0=0, az0=0;
+int   warmupLeft = 0;                 // amostras p/ baseline
+const int WARMUP_SAMPLES = 20;
+
+// =================== Helpers ===================
+static String shortClientId(const char* base) {
+  // PubSubClient aceita até 23 caracteres no clientId
+  String mac = String((uint32_t)ESP.getEfuseMac(), HEX); // 8 hex
+  String b   = String(base);
+  // garante <= 23: ex: "fiwareb010-" (11) + mac(8) = 19
+  if (b.length() > 12) b = b.substring(0, 12);
+  return b + "-" + mac;
 }
 
-void initWiFi() {
-    delay(10);
-    Serial.println("------Conexao WI-FI------");
-    Serial.print("Conectando-se na rede: ");
-    Serial.println(SSID);
-    Serial.println("Aguarde");
-    reconectWiFi();
-}
+// =================== Prototipos ===================
+void sendStatusHeartbeat();
+void handleAccel();
 
-void initMQTT() {
-   
-    String clientId = "esp32-" + String((uint32_t)ESP.getEfuseMac(), HEX);
-    Serial.printf("\nConectando ao broker %s:%d com ID %s...\n",MQTT_HOST, MQTT_PORT, clientId.c_str()); 
-    MQTT.setServer(BROKER_MQTT, BROKER_PORT);
-    MQTT.setCallback(mqtt_callback);
-    MQTT.setKeepAlive(60);
-    MQTT.setSocketTimeout(10);
-    MQTT.setBufferSize(MQTT_MAX_PACKET_SIZE);
-}
-
-
-
+// =================== Setup ===================
 void setup() {
-    InitOutput();
-    initSerial();
-    initWiFi();
-    initMQTT();
-    lastTime = millis();
+  Serial.begin(115200);
+  pinMode(D4, OUTPUT);
+  digitalWrite(D4, LOW);
 
-    Wire.begin(6,7);
-    accelgyro.initialize();
-    delay(100);
-    MQTT.publish(TOPICO_PUBLISH_1, "s|off");
+  // Wi-Fi básico (sem resets agressivos)
+  WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
+  WiFi.setAutoReconnect(true);
+  WiFi.begin(SSID, PASSWORD);
+
+  // MQTT
+  MQTT.setServer(BROKER_MQTT, BROKER_PORT);
+  MQTT.setKeepAlive(60);
+  MQTT.setSocketTimeout(15);
+  MQTT.setBufferSize(MQTT_MAX_PACKET_SIZE);
+  MQTT.setCallback([](char* topic, byte* payload, unsigned int length){
+    String msg; msg.reserve(length);
+    for (unsigned int i = 0; i < length; i++) msg += (char)payload[i];
+    Serial.printf("[MQTT] %s => %s\n", topic, msg.c_str());
+
+    const String onTopic  = String(topicPrefix) + "@on|";
+    const String offTopic = String(topicPrefix) + "@off|";
+
+    if (msg == onTopic) {
+      digitalWrite(D4, HIGH);
+      EstadoSaida = '1';
+      emEvento = true;
+
+      // reseta contadores e baseline
+      scoreX = scoreY = scoreZ = 0;
+      warmupLeft = WARMUP_SAMPLES;
+      ax0 = ay0 = az0 = 0;
+      lastMs = millis();
+      lastPubMs = 0; // libera a 1ª publicação
+
+    } else if (msg == offTopic) {
+      EstadoSaida = '0';
+      emEvento = false;
+      scoreX = scoreY = scoreZ = 0; // zera para próximo evento
+      warmupLeft = 0;
+      digitalWrite(D4, LOW);
+    }
+  });
+
+  // I2C + MPU
+  Wire.begin(21,22);
+  accelgyro.initialize();
+
+  lastMs = millis();
 }
 
+// =================== Reconexões ===================
+void tryReconnectWiFi() {
+  if (WiFi.status() == WL_CONNECTED) return;
+  if (millis() - lastWifiTry < WIFI_RETRY_MS) return;
+  lastWifiTry = millis();
+  Serial.println("[WiFi] tentando reconectar...");
+  WiFi.reconnect();
+}
+
+void tryReconnectMQTT() {
+  if (WiFi.status() != WL_CONNECTED) return;
+  if (MQTT.connected()) return;
+  if (millis() - lastMqttTry < MQTT_RETRY_MS) return;
+  lastMqttTry = millis();
+
+  String cid = shortClientId(ID_MQTT);
+  Serial.printf("[MQTT] Conectando (%s:%d) cid=%s\n", BROKER_MQTT, BROKER_PORT, cid.c_str());
+  if (MQTT.connect(cid.c_str())) {
+    Serial.println("[MQTT] conectado!");
+    MQTT.subscribe(TOPICO_SUBSCRIBE);
+  } else {
+    Serial.printf("[MQTT] falha state=%d\n", MQTT.state());
+  }
+}
+
+// =================== Loop ===================
 void loop() {
-    // if (Serial.available() > 0) {
-    //     String entrada = Serial.readString();
-    //     entrada.trim();
+  // Conexões
+  tryReconnectWiFi();
+  tryReconnectMQTT();
 
-    //     if (entrada == "1") {
-    //         Serial.println("🔧 Entrando no modo de configuração...");
-    //         configurations();
-    //     }
-    // }
-    VerificaConexoesWiFIEMQTT();
-    EnviaEstadoOutputMQTT();
-    if(emEvento){
-        handleAccel();
-    }  
-    MQTT.loop();
+  // Heartbeat (s|on / s|off) sem bloquear
+  sendStatusHeartbeat();
+
+  // Sensoriamento
+  if (emEvento) handleAccel();
+
+  // Mantém sessão MQTT viva
+  MQTT.loop();
+
+  delay(1);
 }
 
-void reconectWiFi() {
-    if (WiFi.status() == WL_CONNECTED)
-        return;
+// =================== Heartbeat ===================
+void sendStatusHeartbeat() {
+  if (!MQTT.connected()) return;
+  unsigned long now = millis();
+  if (now - lastStatusMs < STATUS_EVERY_MS) return;
+  lastStatusMs = now;
 
-    Serial.print("🔌 Conectando à rede: ");
-    Serial.println(SSID);
-
-    WiFi.begin(SSID, PASSWORD);
-
-    unsigned long startAttemptTime = millis();
-    const unsigned long timeout = 30000;
-
-    // tenta até conectar ou atingir o timeout
-    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < timeout) {
-        delay(500);
-        Serial.print(".");
-    }
-
-    // se conectou, mostra info
-    if (WiFi.status() == WL_CONNECTED) {
-        Serial.println();
-        Serial.println("✅ Conectado com sucesso na rede!");
-        Serial.print("SSID: ");
-        Serial.println(SSID);
-        Serial.print("IP obtido: ");
-        Serial.println(WiFi.localIP());
-
-        digitalWrite(D4, LOW);
-    } else {
-        Serial.println();
-        Serial.println("❌ Falha ao conectar no WiFi dentro do tempo limite.");
-        Serial.println("➡️ Tentará novamente em background...");
-
-        // ⚠️ Não chamar configurations() aqui
-        // Apenas deixar sem conexão e tentar de novo no loop
-    }
+  const char* payload = (EstadoSaida == '1') ? "s|on" : "s|off";
+  if (!MQTT.publish(TOPICO_PUBLISH_1, payload)) {
+    Serial.println("[MQTT] publish estado falhou");
+  }
 }
 
-
-
-void mqtt_callback(char* topic, byte* payload, unsigned int length) {
-    String msg;
-    for (int i = 0; i < length; i++) {
-        char c = (char)payload[i];
-        msg += c;
-    }
-    Serial.print("- Mensagem recebida: ");
-    Serial.println(msg);
-
-    // Forma o padrão de tópico para comparação
-    String onTopic = String(topicPrefix) + "@on|";
-    String offTopic = String(topicPrefix) + "@off|";
-
-    // Compara com o tópico recebido
-    if (msg.equals(onTopic)) {
-        digitalWrite(D4, HIGH);
-        EstadoSaida = '1';
-        emEvento = true;
-    }
-    
-
-    if (msg.equals(offTopic)) {
-        EstadoSaida = '0';
-        emEvento = false;
-        String mX = String(scoreX);
-        String mY = String(scoreY);
-        String mZ = String(scoreZ);
-        MQTT.publish(TOPICO_PUBLISH_2, mX.c_str());
-        MQTT.publish(TOPICO_PUBLISH_3, mY.c_str());
-        MQTT.publish(TOPICO_PUBLISH_4, mZ.c_str());
-        scoreX = 0, scoreY = 0, scoreZ = 0;
-        
-    }
-}
-
-void VerificaConexoesWiFIEMQTT() {
-    if (!MQTT.connected())
-        reconnectMQTT();
-    reconectWiFi();
-}
-
-void EnviaEstadoOutputMQTT() {
-    if (EstadoSaida == '1') {
-        MQTT.publish(TOPICO_PUBLISH_1, "s|on");
-        Serial.println("- Durante evento");
-    }
-
-    if (EstadoSaida == '0') {
-        MQTT.publish(TOPICO_PUBLISH_1, "s|off");
-        Serial.println("- Fora de evento");
-    }
-    Serial.println("- Estado do evento enviado ao broker!");
-    delay(1000);
-}
-
-void InitOutput() {
-    pinMode(D4, OUTPUT);
-    digitalWrite(D4, HIGH);
-    boolean toggle = false;
-
-    for (int i = 0; i <= 10; i++) {
-        toggle = !toggle;
-        digitalWrite(D4, toggle);
-        delay(200);
-    }
-}
-
-void reconnectMQTT() {
-    while (!MQTT.connected()) {
-        Serial.print("* Tentando se conectar ao Broker MQTT: ");
-        Serial.println(BROKER_MQTT);
-        
-        if (MQTT.connect(ID_MQTT)) {
-            Serial.println("Conectado com sucesso ao broker MQTT!");
-            MQTT.subscribe(TOPICO_SUBSCRIBE);
-        } else {
-            Serial.println("Falha ao reconectar no broker.");
-            Serial.println("Haverá nova tentativa de conexão em 2s");
-            Serial.println(MQTT.state());
-            delay(2000);
-        }
-    }
-}
-
-//MUDAR PARA GIROSCÓPIO 
+// =================== Sensores / Score ===================
 void handleAccel() {
-    unsigned long now = millis();
-    while(millis() - now  < 10000)
-    {
-        int16_t ax, ay, az, gx, gy, gz;
-    accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+  unsigned long now = millis();
+  float dt = (now - lastMs) / 1000.0f;
+  lastMs = now;
+  if (dt <= 0) return;
+  if (dt > DT_CAP) dt = DT_CAP;
 
-    // Converte para g
-    float ax_g = ax / 16384.0;
-    float ay_g = ay / 16384.0;
-    float az_g = az / 16384.0;
+  int16_t ax, ay, az, gx, gy, gz;
+  accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
-    // Converte giroscópio para °/s (LSB = 131 para ±250°/s)
-    float gx_dps = gx / 131.0;
-    float gy_dps = gy / 131.0;
-    float gz_dps = gz / 131.0;
+  // g
+  float ax_g = ax / 16384.0f;
+  float ay_g = ay / 16384.0f;
+  float az_g = az / 16384.0f;
 
-    // Threshold para descartar ruído
-    if (fabs(ax_g) < 1) ax_g = 0;
-    if (fabs(ay_g) < 1) ay_g = 0;
-    if (fabs(az_g) < 1) az_g = 0;
-    if (fabs(gx_dps) < 10 && fabs(gy_dps) < 10 && fabs(gz_dps) < 10) {
-        // braço praticamente parado → não soma pontos
-        return;
+  // ---- baseline (warm-up) ----
+  if (warmupLeft > 0) {
+    ax0 += ax_g; ay0 += ay_g; az0 += az_g;
+    warmupLeft--;
+    if (warmupLeft == 0) {
+      ax0 /= (float)WARMUP_SAMPLES;
+      ay0 /= (float)WARMUP_SAMPLES;
+      az0 /= (float)WARMUP_SAMPLES;
+      Serial.printf("[BASE] ax0=%.3f ay0=%.3f az0=%.3f\n", ax0, ay0, az0);
     }
+    return; // não integra durante warm-up
+  }
 
-    // Tempo para integração
-    
-    float dt = (now - lastTime) / 1000.0;
-    lastTime = now;
+  // remove baseline
+  ax_g -= ax0; ay_g -= ay0; az_g -= az0;
 
-    // Score só quando há aceleração + movimento real
-    scoreX += fabs(ax_g) * dt;
-    scoreY += fabs(ay_g) * dt;
-    scoreZ += fabs(az_g) * dt;
+  // deadband + clamp
+  if (fabs(ax_g) < DEADBAND_G) ax_g = 0;
+  if (fabs(ay_g) < DEADBAND_G) ay_g = 0;
+  if (fabs(az_g) < DEADBAND_G) az_g = 0;
+  ax_g = constrain(ax_g, -A_CLAMP, A_CLAMP);
+  ay_g = constrain(ay_g, -A_CLAMP, A_CLAMP);
+  az_g = constrain(az_g, -A_CLAMP, A_CLAMP);
 
-    Serial.print("Score X: "); Serial.print(scoreX);
-    Serial.print(" | Score Y: "); Serial.println(scoreY);
-    Serial.print(" | Score Z: "); Serial.println(scoreZ);
-    }
+  // integra (energia de movimento)
+  scoreX += fabs(ax_g) * dt;
+  scoreY += fabs(ay_g) * dt;
+  scoreZ += fabs(az_g) * dt;
 
+  // Publica cadenciado
+  if (!MQTT.connected()) return;
+  if (now - lastPubMs < PUB_EVERY_MS) return;
+  lastPubMs = now;
+
+  // ① UL 2.0 — /attrs
+  String ul = "scoreX|" + String(scoreX, 3) +
+              "|scoreY|" + String(scoreY, 3) +
+              "|scoreZ|" + String(scoreZ, 3);
+  bool ok1 = MQTT.publish(TOPICO_PUBLISH_1, ul.c_str());
+
+  // ② Por-atributo — /attrs/scoreX (mantém compatibilidade com seu fluxo antigo)
+  bool ok2 = MQTT.publish(TOPICO_PUBLISH_2, String(scoreX, 3).c_str());
+  bool ok3 = MQTT.publish(TOPICO_PUBLISH_3, String(scoreY, 3).c_str());
+  bool ok4 = MQTT.publish(TOPICO_PUBLISH_4, String(scoreZ, 3).c_str());
+
+  if (!(ok1 && ok2 && ok3 && ok4)) {
+    Serial.printf("[MQTT] publish falhou (ok1=%d ok2=%d ok3=%d ok4=%d, state=%d)\n",
+                  ok1, ok2, ok3, ok4, MQTT.state());
+  }
 }
-
-void configurations() {
-    Serial.println("Configurações na serial\n10. SSID\n11. BROKER MQTT\n12. ID DA BAND");
-
-    while (Serial.available() == 0) {}  // espera entrada
-    String command = Serial.readString();
-    command.trim();  // remove espaços e quebras de linha
-
-    if (command == "10") {
-        Serial.println("Digite o novo SSID: ");
-        while (Serial.available() == 0) {}
-        String newMessage = Serial.readString();
-        newMessage.trim();
-        SSID = strdup(newMessage.c_str());  // duplica string para memória estática
-
-        Serial.println("Digite a nova senha: ");
-        while (Serial.available() == 0) {}
-        newMessage = Serial.readString();
-        newMessage.trim();
-        PASSWORD = strdup(newMessage.c_str());
-
-    } else if (command == "11") {
-        Serial.println("Digite o novo IP: ");
-        while (Serial.available() == 0) {}
-        String newMessage = Serial.readString();
-        newMessage.trim();
-        BROKER_MQTT = strdup(newMessage.c_str());
-
-    } else if (command == "12") {
-        Serial.println("Digite o novo ID da BAND: ");
-        while (Serial.available() == 0) {}
-        String newMessage = Serial.readString();
-        newMessage.trim();
-        BAND_ID = newMessage.toInt();
-
-    } else {
-        Serial.println("Nada selecionado.");
-    }
-
-    initWiFi();
-    initMQTT();
-}
-
