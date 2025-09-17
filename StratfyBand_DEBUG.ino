@@ -224,19 +224,13 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
     digitalWrite(D4, HIGH);
     EstadoSaida = '1';
     emEvento = true;
+    lastTime = millis();
+    scoreX = scoreY = scoreZ = 0;
   } else if (msg.equals(offTopic)) {
     EstadoSaida = '0';
     emEvento = false;
 
-    // Publica scores somente se houver MQTT
-    if (MQTT.connected()) {
-      String mX = String(scoreX);
-      String mY = String(scoreY);
-      String mZ = String(scoreZ);
-      MQTT.publish(TOPICO_PUBLISH_2, mX.c_str());
-      MQTT.publish(TOPICO_PUBLISH_3, mY.c_str());
-      MQTT.publish(TOPICO_PUBLISH_4, mZ.c_str());
-    }
+    
     scoreX = scoreY = scoreZ = 0;
   }
 }
@@ -285,6 +279,7 @@ void handleAccel() {
   if (fabs(ay_g) < 1) ay_g = 0;
   if (fabs(az_g) < 1) az_g = 0;
   if (fabs(gx_dps) < 10 && fabs(gy_dps) < 10 && fabs(gz_dps) < 10) {
+    lastTime = millis();
     return;
   }
 
@@ -301,5 +296,13 @@ void handleAccel() {
   Serial.print("Score X: "); Serial.print(scoreX);
   Serial.print(" | Score Y: "); Serial.println(scoreY);
   Serial.print(" | Score Z: "); Serial.println(scoreZ);
+  // Publica scores somente se houver MQTT
+    if (MQTT.connected()) {
+      String mX = String(scoreX);
+      String mY = String(scoreY);
+      String mZ = String(scoreZ);
+      MQTT.publish(TOPICO_PUBLISH_2, mX.c_str());
+      MQTT.publish(TOPICO_PUBLISH_3, mY.c_str());
+      MQTT.publish(TOPICO_PUBLISH_4, mZ.c_str());
+    }
 }
-
