@@ -112,6 +112,10 @@ ENTITY_TYPE=smartband
 
 ## 👥 Time
 **Stratfy**
+Luigi Mendes Cabrini 563552
+Bruno Koeke 561309
+Rogério Cruz Arroyo 563517
+Anthony Sforzin 562096
 
 ---
 
