@@ -294,7 +294,7 @@
 					"response": []
 				},
 				{
-					"name": "4. Registering StrBand Commands Copy",
+					"name": "registrar jetson",
 					"id": "47458148-b9f9670e-d957-44fa-bbe3-7cad2cecaa19",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
