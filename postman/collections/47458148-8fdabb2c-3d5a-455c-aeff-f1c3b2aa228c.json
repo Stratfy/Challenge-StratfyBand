@@ -206,7 +206,7 @@
 					"response": []
 				},
 				{
-					"name": "3. Provisioning a StrBand Copy",
+					"name": "provisionando jetson",
 					"id": "47458148-4f16e5f2-fde2-4233-b1bc-a71642f89f06",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
