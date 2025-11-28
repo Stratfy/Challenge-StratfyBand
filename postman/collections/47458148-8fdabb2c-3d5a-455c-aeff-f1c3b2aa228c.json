@@ -294,6 +294,50 @@
 					"response": []
 				},
 				{
+					"name": "4. Registering StrBand Commands Copy",
+					"id": "47458148-b9f9670e-d957-44fa-bbe3-7cad2cecaa19",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "fiware-service",
+								"value": "smart",
+								"type": "text"
+							},
+							{
+								"key": "fiware-servicepath",
+								"value": "/",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Lamp Commands\", // Descrição do serviço de notificação\n  \"dataProvided\": {\n    \"entities\": [\n      {\n        \"id\": \"urn:ngsi-ld:Lamp:001\", \"type\": \"Lamp\" // Definição da entidade a ser monitorada\n      }\n    ],\n    \"attrs\": [\"on\", \"off\"] // Atributos a serem monitorados (no caso, 'on' e 'off')\n  },\n  \"provider\": {\n    \"http\": { \"url\": \"http://{{url}}:4041\" }, // URL do serviço a ser notificado\n    \"legacyForwarding\": true // Indicação para encaminhar notificações de forma legada (se aplicável)\n  }\n}\n"
+						},
+						"url": {
+							"raw": "http://{{url}}:1026/v2/registrations",
+							"protocol": "http",
+							"host": [
+								"{{url}}"
+							],
+							"port": "1026",
+							"path": [
+								"v2",
+								"registrations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "5. List all Devices Provisioned",
 					"id": "47458148-eb6b4ba3-2c0b-4f55-9897-f32de8404e3d",
 					"protocolProfileBehavior": {
